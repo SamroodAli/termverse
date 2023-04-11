@@ -1,0 +1,13 @@
+{
+  "name": "termverse",
+  "version": "1.0.0",
+  "description": "",
+  "main": "launcher.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js sample_config.json"
+  },
+  "keywords": [],
+  "author": "devsamrood@gmail.com",
+  "license": "ISC"
+}

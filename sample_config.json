@@ -1,0 +1,29 @@
+{
+  "apiVersion": 1,
+  "sessions": [
+    {
+      "name": "backend",
+      "workdir": "./sample",
+      "windows": [
+        {
+          "name": "api-command-line",
+          "command": "nvm use"
+        },
+        {
+          "name": "api-dev-server",
+          "command": "node server"
+        }
+      ]
+    },
+    {
+      "name": "frontend",
+      "workdir": "~./sample",
+      "windows": [
+        {
+          "name": "web-command-line",
+          "command": "pwd"
+        }
+      ]
+    }
+  ]
+}
