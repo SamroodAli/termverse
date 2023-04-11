@@ -6,7 +6,7 @@ const exec = promisify(cbExec);
 
 main();
 
-function main() {
+async function main() {
   const jsonFilepath = process.argv[2];
 
   if (!jsonFilepath) {
@@ -21,6 +21,7 @@ function main() {
 
   const config = JSON.parse(configFileContent);
 
+  await killServerIfNeeded();
   // create sessions
   config.sessions.forEach(createTmuxSession);
 }
@@ -29,26 +30,54 @@ function main() {
 
 async function createTmuxSession(session) {
   // create session
-  runCommand(`tmux new-session -ds ${session.name}`);
 
+  await runCommand(`tmux new-session -ds ${session.name}`);
   // create windows
   session.windows.forEach(async (window, index) => {
-    // start window
-    await runCommand(`tmux new-window -dt ${session.name}: -n ${window.name}`);
+    if (index === 0) {
+      // a window already exists
+      await runCommand(
+        `tmux rename-window -t ${session.name}:1 ${window.name}`
+      );
+    } else {
+      // start window
+      await runCommand(
+        `tmux new-window -dt ${session.name}: -n ${window.name}`
+      );
+    }
 
     // change directory to session workdir
-    const commandPrefix =`tmux send-keys -t ${session.name}:${index + 1} cd ${session.workdir} C-m`
+    const commandPrefix = `tmux send-keys -t ${session.name}:${index + 1}`;
+
+    if (session.workdir) {
+      await runCommand(`${commandPrefix} 'cd\ ${session.workdir}' C-m`);
+    }
+
+    if (session.commands && session.commands.pre) {
+      await runCommand(`${commandPrefix} '${session.commands.pre}' C-m`);
+    }
 
     // execute window command
-    await runCommand(`tmux send-keys -t ${session.name}:${index + 1} ${window.command} C-m`);
+    await runCommand(`${commandPrefix} '${window.command}' C-m`);
 
-    console.log(`${session.name} ${window.name} ${window.command} :✅`);
+    console.log(`✅ ${session.name} ${window.name} ${window.command}`);
   });
 }
 
-async function runCommand(command) {
+async function runCommand(command, log = true) {
   const { stderr, stdout } = await exec(command);
 
-  stdout.length && console.log("stdout:", stdout);
-  stderr.length && console.error("stderr:", stderr);
+  if (log) {
+    stdout.length && console.log("stdout:", stdout);
+    stderr.length && console.error("stderr:", stderr);
+  }
+}
+
+async function killServerIfNeeded() {
+  try {
+    await runCommand(`tmux ls`, false);
+    await runCommand(`tmux kill-server`, false);
+  } catch (err) {
+    return true;
+  }
 }
